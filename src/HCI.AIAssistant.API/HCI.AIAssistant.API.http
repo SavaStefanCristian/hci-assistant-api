@@ -1,0 +1,6 @@
+@HCI.AIAssistant.API_HostAddress = http://localhost:5218
+
+GET {{HCI.AIAssistant.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
