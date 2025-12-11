@@ -51,8 +51,10 @@ public class AIAssistantController : ControllerBase
             );
         }
 
+        string messageToSendToAssistant= "Instruction: " + _appConfigurationsService.Instruction + "\nMessage: " + request.TextMessage;
+
 #pragma warning disable CS8604
-        string textMessageResponse = await _aIAssistantService.SendMessageAndGetResponseAsync(request.TextMessage);
+        string textMessageResponse = await _aIAssistantService.SendMessageAndGetResponseAsync(messageToSendToAssistant);
 #pragma warning restore CS8604
 
         AIAssistantControllerPostMessageResponseDTO response = new()
