@@ -11,4 +11,5 @@ public interface IAppConfigurationsService
     public string? SecretsPrefix { get; set; }
     public string? IoTDeviceName { get; set; }
     public string? Instruction { get; set; }
+    public string? AccessInformation { get; set; }
 }

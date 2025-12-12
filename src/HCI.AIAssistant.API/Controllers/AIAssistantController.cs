@@ -51,11 +51,41 @@ public class AIAssistantController : ControllerBase
             );
         }
 
-        string messageToSendToAssistant= "Instruction: " + _appConfigurationsService.Instruction + "\nMessage: " + request.TextMessage;
+        if (request.Messages == null || !request.Messages.Any())
+        {
+            return BadRequest(new ErrorResponseDTO()
+            {
+                TextErrorTitle = "MissingMessages",
+                TextErrorMessage = "The message history is empty.",
+                TextErrorTrace = _parametricFunctions.GetCallerTrace()
+            });
+        }
+
+        StringBuilder promptBuilder = new();
+
+        promptBuilder.AppendLine("Instruction: " + _appConfigurationsService.Instruction + "\nAllowed Users Information: " + _appConfigurationsService.AccessInformation + "\nChat:");
+
+        foreach (var msg in request.Messages)
+        {
+            string role = msg.SenderType == "User" ? "User" : "Assistant";
+            promptBuilder.AppendLine($"{role}: {msg.Text}");
+        }
+
+        promptBuilder.AppendLine("Assistant:");
+
+        string fullContextPrompt = promptBuilder.ToString();
+
+
+        // Console.WriteLine(fullContextPrompt);
 
 #pragma warning disable CS8604
-        string textMessageResponse = await _aIAssistantService.SendMessageAndGetResponseAsync(messageToSendToAssistant);
+        string textMessageResponse = await _aIAssistantService.SendMessageAndGetResponseAsync(fullContextPrompt);
 #pragma warning restore CS8604
+
+        var cmdRegex = new System.Text.RegularExpressions.Regex(@"\[END\]\s*\[(\d+)\]");
+        var match = cmdRegex.Match(textMessageResponse);
+
+
 
         AIAssistantControllerPostMessageResponseDTO response = new()
         {
@@ -65,8 +95,10 @@ public class AIAssistantController : ControllerBase
         string? ioTHubConnectionString = _secretsService?.IoTHubSecrets?.ConnectionString;
         if (ioTHubConnectionString != null)
         {
+            string numberOnly = match.Groups[1].Value;
+
             var serviceClientForIoTHub = ServiceClient.CreateFromConnectionString(ioTHubConnectionString);
-            var seralizedMessage = JsonConvert.SerializeObject(textMessageResponse);
+            var seralizedMessage = JsonConvert.SerializeObject(numberOnly);
 
             var ioTMessage = new Message(Encoding.UTF8.GetBytes(seralizedMessage));
             await serviceClientForIoTHub.SendAsync(_appConfigurationsService.IoTDeviceName, ioTMessage);
